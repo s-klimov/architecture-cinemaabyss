@@ -12,16 +12,17 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Database connection
+// db — пул соединений с PostgreSQL, общий для всех обработчиков монолита.
 var db *sql.DB
 
-// Models
+// User — пользователь платформы (домен Users).
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 }
 
+// Movie — карточка фильма с жанрами и рейтингом (домен Movies, legacy в монолите).
 type Movie struct {
 	ID          int      `json:"id"`
 	Title       string   `json:"title"`
@@ -30,6 +31,7 @@ type Movie struct {
 	Rating      float64  `json:"rating"`
 }
 
+// Payment — платёж пользователя (домен Payments).
 type Payment struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
@@ -37,6 +39,7 @@ type Payment struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// Subscription — подписка пользователя на тарифный план (домен Subscriptions).
 type Subscription struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
@@ -45,19 +48,17 @@ type Subscription struct {
 	EndDate   time.Time `json:"end_date"`
 }
 
+// main поднимает HTTP-сервер монолита: health + CRUD по Users/Movies/Payments/Subscriptions.
 func main() {
-	// Initialize database connection
 	initDB()
 	defer db.Close()
 
-	// Set up HTTP routes
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/api/users", handleUsers)
 	http.HandleFunc("/api/movies", handleMovies)
 	http.HandleFunc("/api/payments", handlePayments)
 	http.HandleFunc("/api/subscriptions", handleSubscriptions)
 
-	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -66,6 +67,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
+// initDB открывает соединение с PostgreSQL по DB_CONNECTION_STRING
 func initDB() {
 	connStr := os.Getenv("DB_CONNECTION_STRING")
 	if connStr == "" {
@@ -84,12 +86,13 @@ func initDB() {
 	log.Println("Successfully connected to database")
 }
 
+// healthHandler возвращает JSON {"status": true} для проверки живости монолита.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"status": true})
 }
 
-// User handlers
+// handleUsers маршрутизирует HTTP-методы домена Users.
 func handleUsers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -105,6 +108,7 @@ func handleUsers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getAllUsers возвращает всех пользователей из таблицы users.
 func getAllUsers(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, username, email FROM users")
 	if err != nil {
@@ -127,6 +131,7 @@ func getAllUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// getUserByID возвращает одного пользователя по query-параметру id.
 func getUserByID(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	var u User
@@ -140,6 +145,7 @@ func getUserByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(u)
 }
 
+// createUser создаёт пользователя из JSON-тела и возвращает запись с присвоенным id.
 func createUser(w http.ResponseWriter, r *http.Request) {
 	var u User
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
@@ -158,7 +164,8 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(u)
 }
 
-// Movie handlers
+// handleMovies маршрутизирует HTTP-методы legacy-домена Movies в монолите
+// (дублируется movies-service; трафик переключается через Proxy).
 func handleMovies(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -174,6 +181,7 @@ func handleMovies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getAllMovies возвращает список фильмов с жанрами из movie_genres.
 func getAllMovies(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, title, description, rating FROM movies")
 	fmt.Println("get movies from monolith")
@@ -191,7 +199,6 @@ func getAllMovies(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Get genres for this movie
 		genreRows, err := db.Query("SELECT genre FROM movie_genres WHERE movie_id = $1", m.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -217,6 +224,7 @@ func getAllMovies(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(movies)
 }
 
+// getMovieByID возвращает фильм по query-параметру id вместе с жанрами.
 func getMovieByID(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	var m Movie
@@ -226,7 +234,6 @@ func getMovieByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get genres for this movie
 	genreRows, err := db.Query("SELECT genre FROM movie_genres WHERE movie_id = $1", m.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -249,6 +256,7 @@ func getMovieByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(m)
 }
 
+// createMovie создаёт фильм и связанные жанры в одной транзакции.
 func createMovie(w http.ResponseWriter, r *http.Request) {
 	var m Movie
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -289,7 +297,7 @@ func createMovie(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(m)
 }
 
-// Payment handlers
+// handlePayments маршрутизирует HTTP-методы домена Payments:
 func handlePayments(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -307,6 +315,7 @@ func handlePayments(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getAllPayments возвращает все платежи.
 func getAllPayments(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, user_id, amount, timestamp FROM payments")
 	if err != nil {
@@ -329,6 +338,7 @@ func getAllPayments(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(payments)
 }
 
+// getPaymentByID возвращает платёж по query-параметру id.
 func getPaymentByID(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	var p Payment
@@ -342,6 +352,7 @@ func getPaymentByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(p)
 }
 
+// getPaymentsByUserID возвращает платежи пользователя по query-параметру user_id.
 func getPaymentsByUserID(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	rows, err := db.Query("SELECT id, user_id, amount, timestamp FROM payments WHERE user_id = $1", userID)
@@ -365,6 +376,7 @@ func getPaymentsByUserID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(payments)
 }
 
+// createPayment создаёт платёж; timestamp выставляется на стороне сервера.
 func createPayment(w http.ResponseWriter, r *http.Request) {
 	var p Payment
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -385,7 +397,7 @@ func createPayment(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(p)
 }
 
-// Subscription handlers
+// handleSubscriptions маршрутизирует HTTP-методы домена Subscriptions.
 func handleSubscriptions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -403,6 +415,7 @@ func handleSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getAllSubscriptions возвращает все подписки.
 func getAllSubscriptions(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, user_id, plan_type, start_date, end_date FROM subscriptions")
 	if err != nil {
@@ -425,6 +438,7 @@ func getAllSubscriptions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(subscriptions)
 }
 
+// getSubscriptionByID возвращает подписку по query-параметру id.
 func getSubscriptionByID(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	var s Subscription
@@ -439,6 +453,7 @@ func getSubscriptionByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
+// getSubscriptionsByUserID возвращает подписки пользователя по query-параметру user_id.
 func getSubscriptionsByUserID(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	rows, err := db.Query("SELECT id, user_id, plan_type, start_date, end_date FROM subscriptions WHERE user_id = $1", userID)
@@ -462,6 +477,7 @@ func getSubscriptionsByUserID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(subscriptions)
 }
 
+// createSubscription создаёт подписку из JSON-тела (user_id, plan_type, даты).
 func createSubscription(w http.ResponseWriter, r *http.Request) {
 	var s Subscription
 	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
