@@ -1,0 +1,39 @@
+@startuml c4-container-to-be
+' C4 Container (уровень 2): To-Be архитектура «Кинобездна»
+' C4 — способ рисовать архитектуру слоями. Уровень Container показывает
+' приложения и хранилища (не классы и не внутренние модули).
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Кинобездна — To-Be: диаграмма контейнеров (C4)
+
+Person(client, "Клиент", "Пользователь или программа,\nкоторая вызывает API")
+
+System_Boundary(cinema, "Система Кинобездна") {
+
+    Container(proxy, "Proxy\n(API Gateway)", "Go, порт 8000", "Единая точка входа.\nПринимает все запросы клиента\nи направляет их нужным сервисам.\nПомогает постепенно переносить\nфильмы из монолита (Strangler Fig).")
+
+    Container(monolith, "Monolith", "Go, порт 8080", "Старое большое приложение.\nДомены: пользователи,\nплатежи, подписки.\nПока ещё умеет и фильмы.")
+
+    Container(movies, "Movies Service", "Go, порт 8081", "Новый сервис только про фильмы:\nназвание, описание, жанры, рейтинг.")
+
+    Container(events, "Events Service", "Go, порт 8082", "Сервис событий.\nПишет и читает сообщения в Kafka.")
+
+    ContainerDb(postgres, "PostgreSQL", "База данных", "Общее хранилище данных\nдля Monolith и Movies.")
+
+    ContainerQueue(kafka, "Kafka", "Очередь сообщений", "Доставляет события асинхронно.\nТопики: movie-events,\nuser-events, payment-events.")
+}
+
+Rel(client, proxy, "HTTP-запросы", "REST :8000")
+Rel(proxy, monolith, "пользователи, платежи,\nподписки (+ часть фильмов)")
+Rel(proxy, movies, "запросы про фильмы\n(по проценту миграции)")
+Rel(proxy, events, "создание событий")
+Rel(monolith, postgres, "чтение / запись", "SQL")
+Rel(movies, postgres, "чтение / запись", "SQL")
+Rel(events, kafka, "отправить и прочитать\nсообщения")
+
+SHOW_LEGEND()
+
+@enduml
