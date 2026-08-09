@@ -1,0 +1,135 @@
+newman
+
+CinemaAbyss API Tests
+
+❏ Monolith Service
+↳ Health Check
+  GET http://127.0.0.1:8080/health [200 OK, 124B, 13ms]
+  ✓  Status code is 200
+
+↳ Get All Users
+  GET http://127.0.0.1:8080/api/users [200 OK, 279B, 5ms]
+  ✓  Status code is 200
+  ✓  Response is an array
+
+↳ Create User
+  POST http://127.0.0.1:8080/api/users [201 Created, 181B, 6ms]
+  ✓  Status code is 201
+  ✓  Response has id
+
+↳ Get User by ID
+  GET http://127.0.0.1:8080/api/users?id=4 [200 OK, 176B, 2ms]
+  ✓  Status code is 200
+  ✓  User ID matches
+
+↳ Get All Movies
+  GET http://127.0.0.1:8080/api/movies [200 OK, 1.38kB, 4ms]
+  ✓  Status code is 200
+  ✓  Response is an array
+
+↳ Create Movie
+  POST http://127.0.0.1:8080/api/movies [201 Created, 245B, 7ms]
+  ✓  Status code is 201
+  ✓  Response has id
+
+↳ Get Movie by ID
+  GET http://127.0.0.1:8080/api/movies?id=6 [200 OK, 240B, 4ms]
+  ✓  Status code is 200
+  ✓  Movie ID matches
+
+↳ Create Payment
+  POST http://127.0.0.1:8080/api/payments [201 Created, 193B, 5ms]
+  ✓  Status code is 201
+  ✓  Response has id
+
+↳ Get Payment by ID
+  GET http://127.0.0.1:8080/api/payments?id=4 [200 OK, 185B, 3ms]
+  ✓  Status code is 200
+  ✓  Payment ID matches
+
+↳ Create Subscription
+  POST http://127.0.0.1:8080/api/subscriptions [201 Created, 235B, 5ms]
+  ✓  Status code is 201
+  ✓  Response has id
+
+↳ Get Subscription by ID
+  GET http://127.0.0.1:8080/api/subscriptions?id=4 [200 OK, 230B, 3ms]
+  ✓  Status code is 200
+  ✓  Subscription ID matches
+
+❏ Movies Microservice
+↳ Health Check
+  GET http://127.0.0.1:8081/api/movies/health [200 OK, 124B, 3ms]
+  ✓  Status code is 200
+  ✓  Status is true
+
+↳ Get All Movies
+  GET http://127.0.0.1:8081/api/movies [200 OK, 1.51kB, 12ms]
+  ✓  Status code is 200
+  ✓  Response is an array
+
+↳ Create Movie
+  POST http://127.0.0.1:8081/api/movies [201 Created, 281B, 5ms]
+  ✓  Status code is 201
+  ✓  Response has id
+
+↳ Get Movie by ID
+  GET http://127.0.0.1:8081/api/movies?id=7 [200 OK, 276B, 3ms]
+  ✓  Status code is 200
+  ✓  Movie ID matches
+
+❏ Events Microservice
+↳ Health Check
+  GET http://127.0.0.1:8082/api/events/health [200 OK, 124B, 3ms]
+  ✓  Status code is 200
+  ✓  Status is true
+
+↳ Create Movie Event
+  POST http://127.0.0.1:8082/api/events/movie [201 Created, 324B, 1097ms]
+  ✓  Status code is 201
+  ✓  Response has status success
+
+↳ Create User Event
+  POST http://127.0.0.1:8082/api/events/user [201 Created, 353B, 1035ms]
+  ✓  Status code is 201
+  ✓  Response has status success
+
+↳ Create Payment Event
+  POST http://127.0.0.1:8082/api/events/payment [201 Created, 394B, 1024ms]
+  ✓  Status code is 201
+  ✓  Response has status success
+
+❏ Proxy Service
+↳ Health Check
+  GET http://127.0.0.1:8000/health [200 OK, 147B, 3ms]
+  ✓  Status code is 200
+
+↳ Get All Movies via Proxy
+  GET http://127.0.0.1:8000/api/movies [200 OK, 1.68kB, 5ms]
+  ✓  Status code is 200
+  ✓  Response is an array
+
+↳ Get All Users via Proxy
+  GET http://127.0.0.1:8000/api/users [200 OK, 347B, 2ms]
+  ✓  Status code is 200
+  ✓  Response is an array
+
+┌─────────────────────────┬────────────────────┬────────────────────┐
+│                         │           executed │             failed │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              iterations │                  1 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│                requests │                 22 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│            test-scripts │                 22 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│      prerequest-scripts │                  0 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              assertions │                 42 │                  0 │
+├─────────────────────────┴────────────────────┴────────────────────┤
+│ total run duration: 3.5s                                          │
+├───────────────────────────────────────────────────────────────────┤
+│ total data received: 6.58kB (approx)                              │
+├───────────────────────────────────────────────────────────────────┤
+│ average response time: 147ms [min: 2ms, max: 1097ms, s.d.: 359ms] │
+└───────────────────────────────────────────────────────────────────┘

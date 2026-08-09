@@ -24,55 +24,73 @@
 
 # Задание 2
 
-### 1. Proxy
-Команда КиноБездны уже выделила сервис метаданных о фильмах movies и вам необходимо реализовать бесшовный переход с применением паттерна Strangler Fig в части реализации прокси-сервиса (API Gateway), с помощью которого можно будет постепенно переключать траффик, используя фиче-флаг.
+### 1. Proxy (API Gateway + Strangler Fig)
 
+**Зачем нужен Proxy.** Клиент ходит в одну точку (`localhost:8000`), а Proxy решает, куда отправить запрос: в старый монолит или в новый сервис. Так можно переезжать по частям и не ломать API для клиентов. Соответствуем паттерну Strangler Fig — «потихоньку обходим старое новым».
 
-Реализуйте сервис на любом языке программирования в ./src/microservices/proxy.
-Конфигурация для запуска сервиса через docker-compose уже добавлена
-```yaml
-  proxy-service:
-    build:
-      context: ./src/microservices/proxy
-      dockerfile: Dockerfile
-    container_name: cinemaabyss-proxy-service
-    depends_on:
-      - monolith
-      - movies-service
-      - events-service
-    ports:
-      - "8000:8000"
-    environment:
-      PORT: 8000
-      MONOLITH_URL: http://monolith:8080
-      #монолит
-      MOVIES_SERVICE_URL: http://movies-service:8081 #сервис movies
-      EVENTS_SERVICE_URL: http://events-service:8082 
-      GRADUAL_MIGRATION: "true" # вкл/выкл простого фиче-флага
-      MOVIES_MIGRATION_PERCENT: "50" # процент миграции
-    networks:
-      - cinemaabyss-network
+**Что сделано.** Сервис на Go в `src/microservices/proxy`:
+
+| Путь | Куда идёт |
+|------|-----------|
+| `/health` | отвечает сам Proxy |
+| `/api/movies*` | монолит **или** Movies Service (по фиче-флагу) |
+| `/api/events*` | Events Service |
+| всё остальное | монолит |
+
+**Фиче-флаг миграции:**
+
+- `GRADUAL_MIGRATION=true` + `MOVIES_MIGRATION_PERCENT=50` → примерно половина запросов movies уходит в новый сервис, остальное — в монолит;
+- `MOVIES_MIGRATION_PERCENT=100` → все movies в Movies Service;
+- `MOVIES_MIGRATION_PERCENT=0` → все movies в монолит;
+- `GRADUAL_MIGRATION=false` → весь movies-трафик сразу в Movies Service.
+
+Проверка:
+
+```bash
+docker compose up -d --build
+curl http://localhost:8000/health
+curl http://localhost:8000/api/movies
+curl http://localhost:8000/api/users
 ```
 
-- После реализации запустите postman тесты - они все должны быть зеленые (кроме events).
-- Отправьте запросы к API Gateway:
-   ```bash
-   curl http://localhost:8000/api/movies
-   ```
-- Протестируйте постепенный переход, изменив переменную окружения MOVIES_MIGRATION_PERCENT в файле docker-compose.yml.
+При `MOVIES_MIGRATION_PERCENT=100` в логах Proxy видно `-> http://movies-service:8081`, при `0` — `-> http://monolith:8080`.
 
+### 2. Kafka + Events Service
 
-### 2. Kafka
- Вам как архитектуру нужно также проверить гипотезу насколько просто реализовать применение Kafka в данной архитектуре.
+**Зачем Kafka здесь.** Нужно проверить гипотезу: можно ли быстро добавить событие «что-то произошло» без жёсткой связки сервисов. MVP: один сервис и пишет в топик, и сам же читает (producer + consumer).
 
-Для этого нужно сделать MVP сервис events, который будет при вызове API создавать и сам же читать сообщения в топике Kafka.
+**Что сделано.** Сервис на Go в `src/microservices/events` (в `docker-compose.yml` уже описан):
 
-    - Разработайте сервис на любом языке программирования с consumer'ами и producer'ами.
-    - Реализуйте простой API, при вызове которого будут создаваться события User/Payment/Movie и обрабатываться внутри сервиса с записью в лог
-    - Добавьте в docker-compose новый сервис, kafka там уже есть
+| API | Kafka-топик |
+|-----|-------------|
+| `POST /api/events/movie` | `movie-events` |
+| `POST /api/events/user` | `user-events` |
+| `POST /api/events/payment` | `payment-events` |
+| `GET /api/events/health` | — |
 
-Необходимые тесты для проверки этого API вызываются при запуске npm run test:local из папки tests/postman 
-Приложите скриншот тестов и скриншот состояния топиков Kafka из UI http://localhost:8090 
+При вызове API событие пишется в Kafka, consumer читает его и пишет в лог контейнера.
+
+### 3. Проверка тестами и скриншоты
+
+Запуск:
+
+```bash
+cd tests/postman
+npm install
+npm run test:local
+```
+
+Результат: **22 запроса, 42 assertions, 0 failed** (включая Events и Proxy).
+
+![Скриншот зелёных Newman/Postman тестов](docs/evidence/newman-tests.png)
+
+Исходник лога: [docs/evidence/newman-test-local.txt](docs/evidence/newman-test-local.txt)
+
+Состояние топиков Kafka UI (`http://localhost:8090`):
+
+![Топики movie-events, user-events, payment-events в Kafka UI](docs/evidence/kafka-ui.png)
+
+Данные топиков: [docs/evidence/kafka-topics.json](docs/evidence/kafka-topics.json)
 
 # Задание 3
 

@@ -1,0 +1,92 @@
+{
+    "pageCount": 1,
+    "topics": [
+        {
+            "name": "movie-events",
+            "internal": false,
+            "partitionCount": 1,
+            "replicationFactor": 1,
+            "replicas": 1,
+            "inSyncReplicas": 1,
+            "segmentSize": 239,
+            "segmentCount": 1,
+            "bytesInPerSec": null,
+            "bytesOutPerSec": null,
+            "underReplicatedPartitions": 0,
+            "cleanUpPolicy": "DELETE",
+            "partitions": [
+                {
+                    "partition": 0,
+                    "leader": 1001,
+                    "replicas": [
+                        {
+                            "broker": 1001,
+                            "leader": true,
+                            "inSync": true
+                        }
+                    ],
+                    "offsetMax": 1,
+                    "offsetMin": 0
+                }
+            ]
+        },
+        {
+            "name": "payment-events",
+            "internal": false,
+            "partitionCount": 1,
+            "replicationFactor": 1,
+            "replicas": 1,
+            "inSyncReplicas": 1,
+            "segmentSize": 314,
+            "segmentCount": 1,
+            "bytesInPerSec": null,
+            "bytesOutPerSec": null,
+            "underReplicatedPartitions": 0,
+            "cleanUpPolicy": "DELETE",
+            "partitions": [
+                {
+                    "partition": 0,
+                    "leader": 1001,
+                    "replicas": [
+                        {
+                            "broker": 1001,
+                            "leader": true,
+                            "inSync": true
+                        }
+                    ],
+                    "offsetMax": 1,
+                    "offsetMin": 0
+                }
+            ]
+        },
+        {
+            "name": "user-events",
+            "internal": false,
+            "partitionCount": 1,
+            "replicationFactor": 1,
+            "replicas": 1,
+            "inSyncReplicas": 1,
+            "segmentSize": 270,
+            "segmentCount": 1,
+            "bytesInPerSec": null,
+            "bytesOutPerSec": null,
+            "underReplicatedPartitions": 0,
+            "cleanUpPolicy": "DELETE",
+            "partitions": [
+                {
+                    "partition": 0,
+                    "leader": 1001,
+                    "replicas": [
+                        {
+                            "broker": 1001,
+                            "leader": true,
+                            "inSync": true
+                        }
+                    ],
+                    "offsetMax": 1,
+                    "offsetMin": 0
+                }
+            ]
+        }
+    ]
+}
