@@ -131,13 +131,24 @@ npm run test:local
 #### Шаг 1
 Для деплоя в kubernetes необходимо залогиниться в docker registry Github'а.
 1. Создайте Personal Access Token (PAT) https://github.com/settings/tokens . Создавайте class с правом read:packages
-2. В src/kubernetes/*.yaml (event-service, monolith, movies-service и proxy-service)  отредактируйте путь до ваших образов 
-```bash
- spec:
-      containers:
-      - name: events-service
-        image: ghcr.io/ваш логин/имя репозитория/events-service:latest
+2. В `src/kubernetes/*.yaml` прописаны пути до образов из GHCR:
+
+| Манифест | Образ |
+|----------|--------|
+| [monolith.yaml](src/kubernetes/monolith.yaml) | `ghcr.io/s-klimov/architecture-cinemaabyss/monolith:latest` |
+| [movies-service.yaml](src/kubernetes/movies-service.yaml) | `ghcr.io/s-klimov/architecture-cinemaabyss/movies-service:latest` |
+| [events-service.yaml](src/kubernetes/events-service.yaml) | `ghcr.io/s-klimov/architecture-cinemaabyss/events-service:latest` |
+| [proxy-service.yaml](src/kubernetes/proxy-service.yaml) | `ghcr.io/s-klimov/architecture-cinemaabyss/proxy-service:latest` |
+
+Пример в манифесте:
+
+```yaml
+spec:
+  containers:
+  - name: events-service
+    image: ghcr.io/s-klimov/architecture-cinemaabyss/events-service:latest
 ```
+
 3. Добавьте в секрет src/kubernetes/dockerconfigsecret.yaml в поле
 ```bash
  .dockerconfigjson: значение в base64 файла ~/.docker/config.json
