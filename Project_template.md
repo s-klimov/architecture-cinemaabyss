@@ -102,45 +102,28 @@ npm run test:local
 
 ### CI/CD
 
- В папке .github/worflows доработайте деплой новых сервисов proxy и events в docker-build-push.yml , чтобы api-tests при сборке отрабатывали корректно при отправке коммита в ваш репозиторий.
+После каждого пуша нужно автоматически собрать Docker-образы сервисов и проверить API тестами. Образы кладём в GitHub Container Registry (`ghcr.io`) — из них потом поднимаем Kubernetes.
 
-Нужно доработать 
-```yaml
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - '.github/workflows/docker-build-push.yml'
-  release:
-    types: [published]
-```
-и добавить необходимые шаги в блок
-```yaml
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+**Что сделано в** [`.github/workflows/docker-build-push.yml`](.github/workflows/docker-build-push.yml):
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+| Образ | Контекст сборки | Куда пушится |
+|-------|-----------------|--------------|
+| monolith | `src/monolith` | `ghcr.io/<owner>/<repo>/monolith` |
+| movies-service | `src/microservices/movies` | `ghcr.io/<owner>/<repo>/movies-service` |
+| events-service | `src/microservices/events` | `ghcr.io/<owner>/<repo>/events-service` |
+| proxy-service | `src/microservices/proxy` | `ghcr.io/<owner>/<repo>/proxy-service` |
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+Триггеры: push в `main`/`cinema` (если менялись `src/**` или сам workflow), published release, ручной запуск (`workflow_dispatch`).
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+Теги образов: `latest`, имя ветки, короткий SHA.
 
-```
-Как только сборка отработает и в github registry появятся ваши образы, можно переходить к блоку настройки Kubernetes
-Успешным результатом данного шага является "зеленая" сборка и "зеленые" тесты
+**API-тесты в CI.** Workflow [`.github/workflows/api-tests.yml`](.github/workflows/api-tests.yml) поднимает стек через `docker compose up -d --build`, ждёт health-эндпоинты и гоняет Newman в Docker-сети `cinemaabyss-network`.
+
+Успешный результат шага: зелёные Actions (**Docker Build and Push** + **API Tests**) и образы proxy/events в GHCR.
+
+Для этого репозитория образы будут вида:
+`ghcr.io/s-klimov/architecture-cinemaabyss/proxy-service:latest`
+`ghcr.io/s-klimov/architecture-cinemaabyss/events-service:latest`
 
 
 ### Proxy в Kubernetes
