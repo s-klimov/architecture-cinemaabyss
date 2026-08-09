@@ -4,10 +4,10 @@
   "description": "API tests for CinemaAbyss microservices architecture",
   "main": "run-tests.js",
   "scripts": {
-    "test": "node run-tests.js",
-    "test:local": "node run-tests.js --environment local",
-    "test:docker": "node run-tests.js --environment docker",
-    "test:kubernetes": "node run-tests.js --environment kubernetes"
+    "test": "newman run CinemaAbyss.postman_collection.json -e local.environment.json --reporters cli",
+    "test:local": "newman run CinemaAbyss.postman_collection.json -e local.environment.json --reporters cli",
+    "test:docker": "newman run CinemaAbyss.postman_collection.json -e docker.environment.json --reporters cli",
+    "test:kubernetes": "newman run CinemaAbyss.postman_collection.json -e kubernetes.environment.json --reporters cli"
   },
   "keywords": [
     "postman",
