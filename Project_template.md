@@ -300,7 +300,18 @@ cat .docker/config.json | base64
   Откройте логи event-service и сделайте скриншот обработки событий
 
 #### Шаг 3
-Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
+
+Вызов `http://cinemaabyss.example.com/api/movies`:
+
+![Список фильмов cinemaabyss.example.com/api/movies](docs/screenshots/movies.png)
+
+*Вывод `http://cinemaabyss.example.com/api/movies` — список фильмов из Kubernetes.*
+
+Вызов `npm run test:kubernetes`:
+
+![Логи тестов](docs/screenshots/events_logs.png)
+
+*Вывод `kubectl -n cinemaabyss logs deploy/events-service` — скриншот обработки событий.*
 
 
 # Задание 4
