@@ -79,11 +79,16 @@ func initDB() {
 		log.Fatal(err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
+	for attempt := 1; attempt <= 30; attempt++ {
+		err = db.Ping()
+		if err == nil {
+			log.Println("Successfully connected to database")
+			return
+		}
+		log.Printf("waiting for database (%d/30): %v", attempt, err)
+		time.Sleep(2 * time.Second)
 	}
-	log.Println("Successfully connected to database")
+	log.Fatal(err)
 }
 
 // healthHandler возвращает JSON {"status": true} для проверки живости монолита.
