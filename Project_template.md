@@ -388,6 +388,18 @@ minikube tunnel
 https://cinemaabyss.example.com/api/movies
 и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
 
+Развёртывание Helm (`helm install` + `kubectl get pods -n cinemaabyss`): все поды `1/1 Running`.
+
+![Helm install cinemaabyss и поды в namespace cinemaabyss](docs/screenshots/helm_start.png)
+
+*Вывод `helm version`, `helm install cinemaabyss .\src\kubernetes\helm --namespace cinemaabyss --create-namespace` и `kubectl get pods -n cinemaabyss`.*
+
+Вызов `http://cinemaabyss.example.com/api/movies`:
+
+![Список фильмов cinemaabyss.example.com/api/movies после Helm](docs/screenshots/helm_movies.png)
+
+*Вывод `http://cinemaabyss.example.com/api/movies` — список фильмов после установки через Helm.*
+
 ## Удаляем все
 
 ```bash
